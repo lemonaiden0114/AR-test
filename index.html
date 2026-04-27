@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- 스마트폰 캐시 방지를 위한 메타 태그 추가 (우주인이 다시 뜨는 것 방지) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <title>웹 AR 3D 뷰어</title>
   
   <!-- model-viewer 웹 컴포넌트 불러오기 -->
@@ -31,7 +37,7 @@
       --poster-color: transparent;
     }
 
-    /* AR 진입 버튼 (자연 친화적인 초록색 톤 적용) */
+    /* AR 진입 버튼 (초록색 톤) */
     .ar-button {
       background-color: #4CAF50;
       color: white;
@@ -74,7 +80,7 @@
     내 화분(Planter) AR로 보기
   </header>
 
-  <!-- 모델 경로를 planter.glb로 변경하고 바닥 배치(floor)로 설정했습니다 -->
+  <!-- 화분 모델(planter.glb)을 바닥에 배치하도록 설정 -->
   <model-viewer 
     id="viewer"
     src="planter.glb" 
@@ -100,7 +106,7 @@
     const modelViewer = document.querySelector('#viewer');
     const arPrompt = document.querySelector('#ar-prompt');
 
-    // AR 모드가 시작되면 모델을 숨김 처리 (자동 배치 방지)
+    // AR 모드 시작 시 모델을 일시적으로 숨김
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
@@ -111,7 +117,7 @@
       }
     });
 
-    // 화면을 터치(클릭)했을 때 모델을 나타나게 함
+    // 화면 터치 시 화분이 나타남
     modelViewer.addEventListener('click', (event) => {
       if (modelViewer.style.opacity === '0') {
         modelViewer.style.opacity = '1'; 
