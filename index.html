@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>웹 AR 3D 뷰어</title>
   
-  <!-- model-viewer 웹 컴포넌트 불러오기 -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.0/model-viewer.min.js"></script>
 
   <style>
@@ -31,7 +30,6 @@
       --poster-color: transparent;
     }
 
-    /* AR 진입 버튼 */
     .ar-button {
       background-color: #007bff;
       color: white;
@@ -52,7 +50,6 @@
       background-color: #0056b3;
     }
 
-    /* AR 화면 내 안내 문구 */
     #ar-prompt {
       position: absolute;
       bottom: 20px;
@@ -71,15 +68,15 @@
 <body>
 
   <header>
-    벽면에 AR 모델 붙이기
+    벽면에 우주인 발 붙이기
   </header>
 
-  <!-- 3D 모델 뷰어 -->
-  <!-- ar-placement를 wall로 변경하여 수직면을 인식하게 합니다 -->
+  <!-- orientation 속성을 추가하여 모델을 90도 숙이게 만듭니다 -->
   <model-viewer 
     id="viewer"
     src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
     alt="우주인 3D 모델" 
+    orientation="90deg 0deg 0deg" 
     ar 
     ar-modes="webxr scene-viewer" 
     ar-placement="wall" 
@@ -92,7 +89,6 @@
       📷 카메라로 벽에 붙이기
     </button>
     
-    <!-- 벽을 인식하도록 안내 문구 수정 -->
     <div id="ar-prompt" slot="ar-prompt">
       벽을 천천히 비춘 후, 원하는 곳을 터치하세요!
     </div>
@@ -102,7 +98,6 @@
     const modelViewer = document.querySelector('#viewer');
     const arPrompt = document.querySelector('#ar-prompt');
 
-    // AR 모드가 시작되면 모델을 숨김 처리 (자동 배치 방지)
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
@@ -113,7 +108,6 @@
       }
     });
 
-    // 화면을 터치(클릭)했을 때 모델을 나타나게 함
     modelViewer.addEventListener('click', (event) => {
       if (modelViewer.style.opacity === '0') {
         modelViewer.style.opacity = '1'; 
