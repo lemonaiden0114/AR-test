@@ -62,18 +62,19 @@
     책상 위 AR 모델 띄우기
   </header>
 
-  <!-- 3D 모델 뷰어 세팅 -->
+  <!-- 3D 모델 뷰어 세팅 (수정된 부분) -->
   <model-viewer 
     src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
     alt="우주인 3D 모델" 
     ar 
-    ar-modes="webxr scene-viewer" 
+    ar-modes="scene-viewer webxr" 
     ar-placement="floor" 
+    ar-scale="fixed"
     camera-controls 
     auto-rotate 
     shadow-intensity="1">
     
-    <!-- AR 진입 버튼 (사용자 정의 디자인 적용) -->
+    <!-- AR 진입 버튼 -->
     <button slot="ar-button" class="ar-button">
       📷 카메라로 책상에 띄우기
     </button>
