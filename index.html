@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- 스마트폰 캐시 방지를 위한 메타 태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
   <title>AR 뷰어</title>
   
-  <!-- model-viewer 웹 컴포넌트 불러오기 -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.0/model-viewer.min.js"></script>
 
   <style>
@@ -31,42 +28,65 @@
       font-weight: bold;
     }
 
-    /* 모델 선택 메뉴 스타일 */
+    /* 상단 컨트롤 패널 스타일 */
     .controls {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       padding: 15px;
       background-color: #ffffff;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       margin-bottom: 10px;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
     }
 
     .controls label {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
       color: #333;
     }
 
     .controls select {
       margin-left: 10px;
-      padding: 8px 12px;
-      font-size: 16px;
+      padding: 8px;
+      font-size: 15px;
       border: 1px solid #ccc;
       border-radius: 6px;
       background-color: #fff;
       cursor: pointer;
       outline: none;
+      max-width: 200px;
+    }
+
+    /* 파일 직접 열기 버튼 */
+    .upload-btn {
+      background-color: #555;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .upload-btn:active {
+      background-color: #333;
     }
 
     model-viewer {
       width: 100%;
-      height: 65vh; /* 선택 메뉴가 들어갈 공간을 위해 높이 약간 조정 */
+      height: 60vh;
       background-color: #ffffff;
       --poster-color: transparent;
     }
 
-    /* AR 진입 버튼 (초록색 톤) */
     .ar-button {
       background-color: #4CAF50;
       color: white;
@@ -83,11 +103,6 @@
       cursor: pointer;
     }
 
-    .ar-button:active {
-      background-color: #388E3C;
-    }
-
-    /* AR 화면 내 안내 문구 */
     #ar-prompt {
       position: absolute;
       bottom: 20px;
@@ -109,19 +124,26 @@
     AR 뷰어
   </header>
 
-  <!-- 모델 선택 드롭다운 메뉴 -->
+  <!-- 메뉴 및 파일 업로드 영역 -->
   <div class="controls">
-    <label for="model-select">모델 선택:</label>
-    <select id="model-select">
-      <option value="planter.glb">화분 (Planter)</option>
-      <option value="mistgate.glb">미스트 게이트 (Mistgate)</option>
-    </select>
+    <div class="row">
+      <label for="model-select">깃허브 모델:</label>
+      <select id="model-select">
+        <option value="">목록 불러오는 중...</option>
+      </select>
+    </div>
+    <div class="row">
+      <!-- 로컬 파일 업로드를 위한 숨겨진 input과 커스텀 버튼 -->
+      <input type="file" id="file-input" accept=".glb, .gltf" style="display: none;">
+      <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+        📁 내 폰/PC에서 직접 열기
+      </button>
+    </div>
   </div>
 
-  <!-- 3D 모델 뷰어 (초기값은 planter.glb로 설정) -->
+  <!-- 3D 모델 뷰어 -->
   <model-viewer 
     id="viewer"
-    src="planter.glb" 
     alt="3D 모델" 
     ar 
     ar-modes="webxr scene-viewer" 
@@ -144,13 +166,66 @@
     const modelViewer = document.querySelector('#viewer');
     const arPrompt = document.querySelector('#ar-prompt');
     const modelSelect = document.querySelector('#model-select');
+    const fileInput = document.querySelector('#file-input');
 
-    // 1. 사용자가 메뉴에서 다른 모델을 선택하면 뷰어의 src를 즉시 변경
+    // [기능 1] 깃허브에서 .glb 파일 목록을 자동으로 불러오기
+    // (lemonaiden0114님의 AR-test 레포지토리 기준)
+    const githubRepo = 'lemonaiden0114/AR-test';
+    
+    fetch(`https://api.github.com/repos/${githubRepo}/contents/`)
+      .then(response => response.json())
+      .then(data => {
+        modelSelect.innerHTML = ''; // 로딩 문구 삭제
+        
+        // .glb 파일만 걸러서 목록 생성
+        const glbFiles = data.filter(file => file.name.endsWith('.glb'));
+        
+        if (glbFiles.length === 0) {
+          modelSelect.innerHTML = '<option value="">.glb 파일이 없습니다</option>';
+          return;
+        }
+
+        // 찾은 파일들을 드롭다운 메뉴에 추가
+        glbFiles.forEach(file => {
+          const option = document.createElement('option');
+          option.value = file.name;
+          option.textContent = file.name;
+          modelSelect.appendChild(option);
+        });
+
+        // 첫 번째 모델을 기본으로 띄우기
+        modelViewer.src = glbFiles[0].name;
+      })
+      .catch(error => {
+        modelSelect.innerHTML = '<option value="">목록 불러오기 실패</option>';
+        console.error('GitHub API 에러:', error);
+      });
+
+    // 드롭다운에서 모델 변경 시
     modelSelect.addEventListener('change', (event) => {
-      modelViewer.src = event.target.value;
+      if(event.target.value) {
+        modelViewer.src = event.target.value;
+      }
     });
 
-    // 2. AR 모드 시작 시 모델을 일시적으로 숨김 (터치하여 배치하기 위함)
+    // [기능 2] 내 폰/PC에서 파일 직접 선택해서 띄우기
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // 파일을 임시 URL로 변환하여 모델 뷰어에 적용
+        const fileURL = URL.createObjectURL(file);
+        modelViewer.src = fileURL;
+        
+        // 드롭다운 메뉴에 임시 옵션 추가
+        const option = document.createElement('option');
+        option.value = fileURL;
+        option.textContent = `(직접 열기) ${file.name}`;
+        option.selected = true;
+        modelSelect.appendChild(option);
+      }
+    });
+
+    // AR 모드 터치 배치 스크립트 (기존 동일)
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
@@ -161,7 +236,6 @@
       }
     });
 
-    // 3. 화면 터치 시 숨겨둔 모델을 나타나게 함
     modelViewer.addEventListener('click', (event) => {
       if (modelViewer.style.opacity === '0') {
         modelViewer.style.opacity = '1'; 
