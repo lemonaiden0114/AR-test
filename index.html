@@ -9,7 +9,6 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.0/model-viewer.min.js"></script>
 
   <style>
-    /* 전체 화면 여백 제거 및 배경색 설정 */
     body {
       margin: 0;
       padding: 0;
@@ -17,7 +16,6 @@
       font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     }
 
-    /* 상단 제목 바 스타일 */
     header {
       background-color: #333;
       color: white;
@@ -26,15 +24,14 @@
       font-size: 1.2rem;
     }
 
-    /* 모델 뷰어 영역 크기 설정 */
     model-viewer {
       width: 100%;
-      height: 70vh; /* 화면 높이의 70% 사용 */
+      height: 70vh;
       background-color: #ffffff;
       --poster-color: transparent;
     }
 
-    /* 커스텀 AR 버튼 스타일 */
+    /* AR 진입 버튼 */
     .ar-button {
       background-color: #007bff;
       color: white;
@@ -54,6 +51,21 @@
     .ar-button:active {
       background-color: #0056b3;
     }
+
+    /* AR 화면 내 안내 문구 (터치하여 배치하기) */
+    #ar-prompt {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      display: none;
+      font-size: 14px;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -62,28 +74,56 @@
     책상 위 AR 모델 띄우기
   </header>
 
-  <!-- 3D 모델 뷰어 세팅 (수정된 부분) -->
+  <!-- 3D 모델 뷰어 -->
+  <!-- ar-modes를 webxr 우선으로 두어 브라우저 내에서 터치 제어가 가능하게 합니다 -->
   <model-viewer 
+    id="viewer"
     src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
     alt="우주인 3D 모델" 
     ar 
-    ar-modes="scene-viewer webxr" 
+    ar-modes="webxr scene-viewer" 
     ar-placement="floor" 
     ar-scale="fixed"
     camera-controls 
     auto-rotate 
     shadow-intensity="1">
     
-    <!-- AR 진입 버튼 -->
     <button slot="ar-button" class="ar-button">
       📷 카메라로 책상에 띄우기
     </button>
     
+    <!-- AR 모드에서만 나타나는 안내창 -->
+    <div id="ar-prompt" slot="ar-prompt">
+      바닥을 천천히 비춘 후, 원하는 곳을 터치하세요!
+    </div>
   </model-viewer>
 
-  <div style="text-align: center; padding: 20px; color: #666;">
-    <p>화면을 터치해서 모델을 돌려보거나,<br>위 버튼을 눌러 실제 공간에 배치해보세요!</p>
-  </div>
+  <script>
+    const modelViewer = document.querySelector('#viewer');
+    const arPrompt = document.querySelector('#ar-prompt');
+
+    // 1. AR 모드가 시작되면 모델을 숨김 처리 (자동 배치 방지)
+    modelViewer.addEventListener('ar-status', (event) => {
+      if (event.detail.status === 'session-started') {
+        // 투명하게 만들어서 처음에는 안 보이게 함
+        modelViewer.style.opacity = '0'; 
+        arPrompt.style.display = 'block'; // 터치 안내 문구 표시
+      } else if (event.detail.status === 'not-presenting') {
+        // AR 모드 종료 시 다시 100% 보이게 복구
+        modelViewer.style.opacity = '1';
+        arPrompt.style.display = 'none';
+      }
+    });
+
+    // 2. 화면을 터치(클릭)했을 때 모델을 나타나게 함
+    modelViewer.addEventListener('click', (event) => {
+      // 현재 AR 모드이고 모델이 숨겨진 상태라면
+      if (modelViewer.style.opacity === '0') {
+        modelViewer.style.opacity = '1'; // 모델을 화면에 나타냄
+        arPrompt.style.display = 'none'; // 안내 문구 숨김
+      }
+    });
+  </script>
 
 </body>
 </html>
