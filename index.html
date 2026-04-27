@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- 스마트폰 캐시 방지를 위한 메타 태그 추가 (우주인이 다시 뜨는 것 방지) -->
+  <!-- 스마트폰 캐시 방지를 위한 메타 태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
-  <title>웹 AR 3D 뷰어</title>
+  <title>AR 뷰어</title>
   
   <!-- model-viewer 웹 컴포넌트 불러오기 -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.0/model-viewer.min.js"></script>
@@ -28,11 +28,40 @@
       text-align: center;
       padding: 15px;
       font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    /* 모델 선택 메뉴 스타일 */
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      margin-bottom: 10px;
+    }
+
+    .controls label {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .controls select {
+      margin-left: 10px;
+      padding: 8px 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background-color: #fff;
+      cursor: pointer;
+      outline: none;
     }
 
     model-viewer {
       width: 100%;
-      height: 70vh;
+      height: 65vh; /* 선택 메뉴가 들어갈 공간을 위해 높이 약간 조정 */
       background-color: #ffffff;
       --poster-color: transparent;
     }
@@ -77,14 +106,23 @@
 <body>
 
   <header>
-    내 화분(Planter) AR로 보기
+    AR 뷰어
   </header>
 
-  <!-- 화분 모델(planter.glb)을 바닥에 배치하도록 설정 -->
+  <!-- 모델 선택 드롭다운 메뉴 -->
+  <div class="controls">
+    <label for="model-select">모델 선택:</label>
+    <select id="model-select">
+      <option value="planter.glb">화분 (Planter)</option>
+      <option value="mistgate.glb">미스트 게이트 (Mistgate)</option>
+    </select>
+  </div>
+
+  <!-- 3D 모델 뷰어 (초기값은 planter.glb로 설정) -->
   <model-viewer 
     id="viewer"
     src="planter.glb" 
-    alt="화분 3D 모델" 
+    alt="3D 모델" 
     ar 
     ar-modes="webxr scene-viewer" 
     ar-placement="floor" 
@@ -105,8 +143,14 @@
   <script>
     const modelViewer = document.querySelector('#viewer');
     const arPrompt = document.querySelector('#ar-prompt');
+    const modelSelect = document.querySelector('#model-select');
 
-    // AR 모드 시작 시 모델을 일시적으로 숨김
+    // 1. 사용자가 메뉴에서 다른 모델을 선택하면 뷰어의 src를 즉시 변경
+    modelSelect.addEventListener('change', (event) => {
+      modelViewer.src = event.target.value;
+    });
+
+    // 2. AR 모드 시작 시 모델을 일시적으로 숨김 (터치하여 배치하기 위함)
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
@@ -117,7 +161,7 @@
       }
     });
 
-    // 화면 터치 시 화분이 나타남
+    // 3. 화면 터치 시 숨겨둔 모델을 나타나게 함
     modelViewer.addEventListener('click', (event) => {
       if (modelViewer.style.opacity === '0') {
         modelViewer.style.opacity = '1'; 
