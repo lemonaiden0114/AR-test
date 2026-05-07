@@ -37,7 +37,7 @@
       background-color: #ffffff;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       margin-bottom: 10px;
-      gap: 10px;
+      gap: 12px; /* 간격 살짝 넓힘 */
     }
 
     .row {
@@ -51,10 +51,10 @@
       font-size: 15px;
       font-weight: bold;
       color: #333;
+      width: 80px; /* 라벨 너비 고정으로 정렬 맞춤 */
     }
 
     .controls select {
-      margin-left: 10px;
       padding: 8px;
       font-size: 15px;
       border: 1px solid #ccc;
@@ -62,7 +62,7 @@
       background-color: #fff;
       cursor: pointer;
       outline: none;
-      max-width: 200px;
+      width: 180px; /* 드롭다운 너비 통일 */
     }
 
     /* 파일 직접 열기 버튼 */
@@ -74,6 +74,7 @@
       padding: 8px 16px;
       font-size: 14px;
       cursor: pointer;
+      width: 270px;
     }
 
     .upload-btn:active {
@@ -82,7 +83,7 @@
 
     model-viewer {
       width: 100%;
-      height: 60vh;
+      height: 55vh; /* 메뉴가 하나 더 늘어서 뷰어 높이 살짝 줄임 */
       background-color: #ffffff;
       --poster-color: transparent;
     }
@@ -101,6 +102,7 @@
       transform: translateX(-50%);
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       cursor: pointer;
+      white-space: nowrap;
     }
 
     #ar-prompt {
@@ -115,6 +117,7 @@
       display: none;
       font-size: 14px;
       pointer-events: none;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -126,17 +129,28 @@
 
   <!-- 메뉴 및 파일 업로드 영역 -->
   <div class="controls">
+    <!-- 1. 모델 선택 -->
     <div class="row">
-      <label for="model-select">깃허브 모델:</label>
+      <label for="model-select">모델:</label>
       <select id="model-select">
         <option value="">목록 불러오는 중...</option>
       </select>
     </div>
+    
+    <!-- 2. 배치 방법 선택 (신규 추가) -->
     <div class="row">
-      <!-- 로컬 파일 업로드를 위한 숨겨진 input과 커스텀 버튼 -->
+      <label for="placement-select">배치:</label>
+      <select id="placement-select">
+        <option value="floor">바닥에 놓기 (Floor)</option>
+        <option value="wall">벽에 붙이기 (Wall)</option>
+      </select>
+    </div>
+
+    <!-- 3. 로컬 파일 업로드 -->
+    <div class="row">
       <input type="file" id="file-input" accept=".glb, .gltf" style="display: none;">
       <button class="upload-btn" onclick="document.getElementById('file-input').click()">
-        📁 내 폰/PC에서 직접 열기
+        📁 내 폰/PC에서 파일 열기
       </button>
     </div>
   </div>
@@ -153,7 +167,7 @@
     auto-rotate 
     shadow-intensity="1">
     
-    <button slot="ar-button" class="ar-button">
+    <button slot="ar-button" class="ar-button" id="ar-button-text">
       📷 카메라로 바닥에 놓기
     </button>
     
@@ -166,18 +180,37 @@
     const modelViewer = document.querySelector('#viewer');
     const arPrompt = document.querySelector('#ar-prompt');
     const modelSelect = document.querySelector('#model-select');
+    const placementSelect = document.querySelector('#placement-select');
     const fileInput = document.querySelector('#file-input');
+    const arButtonText = document.querySelector('#ar-button-text');
 
-    // [기능 1] 깃허브에서 .glb 파일 목록을 자동으로 불러오기
-    // (lemonaiden0114님의 AR-test 레포지토리 기준)
+    // [기능 1] 배치 방법(바닥/벽) 변경 감지 스크립트 추가
+    placementSelect.addEventListener('change', (event) => {
+      const mode = event.target.value;
+      
+      if (mode === 'wall') {
+        // 벽 모드: 수직면 인식으로 바꾸고, 모델을 90도 회전시켜 발바닥이 벽에 붙게 함
+        modelViewer.setAttribute('ar-placement', 'wall');
+        modelViewer.setAttribute('orientation', '90deg 0deg 0deg');
+        arButtonText.textContent = '📷 카메라로 벽에 붙이기';
+        arPrompt.textContent = '벽을 천천히 비춘 후, 원하는 곳을 터치하세요!';
+      } else {
+        // 바닥 모드: 수평면 인식으로 바꾸고 회전 속성을 제거하여 원상복구
+        modelViewer.setAttribute('ar-placement', 'floor');
+        modelViewer.removeAttribute('orientation');
+        arButtonText.textContent = '📷 카메라로 바닥에 놓기';
+        arPrompt.textContent = '바닥이나 책상을 천천히 비춘 후, 원하는 곳을 터치하세요!';
+      }
+    });
+
+    // [기능 2] 깃허브에서 .glb 파일 목록을 자동으로 불러오기
     const githubRepo = 'lemonaiden0114/AR-test';
     
     fetch(`https://api.github.com/repos/${githubRepo}/contents/`)
       .then(response => response.json())
       .then(data => {
-        modelSelect.innerHTML = ''; // 로딩 문구 삭제
+        modelSelect.innerHTML = ''; 
         
-        // .glb 파일만 걸러서 목록 생성
         const glbFiles = data.filter(file => file.name.endsWith('.glb'));
         
         if (glbFiles.length === 0) {
@@ -185,7 +218,6 @@
           return;
         }
 
-        // 찾은 파일들을 드롭다운 메뉴에 추가
         glbFiles.forEach(file => {
           const option = document.createElement('option');
           option.value = file.name;
@@ -193,7 +225,6 @@
           modelSelect.appendChild(option);
         });
 
-        // 첫 번째 모델을 기본으로 띄우기
         modelViewer.src = glbFiles[0].name;
       })
       .catch(error => {
@@ -208,15 +239,13 @@
       }
     });
 
-    // [기능 2] 내 폰/PC에서 파일 직접 선택해서 띄우기
+    // [기능 3] 내 폰/PC에서 파일 직접 선택해서 띄우기
     fileInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file) {
-        // 파일을 임시 URL로 변환하여 모델 뷰어에 적용
         const fileURL = URL.createObjectURL(file);
         modelViewer.src = fileURL;
         
-        // 드롭다운 메뉴에 임시 옵션 추가
         const option = document.createElement('option');
         option.value = fileURL;
         option.textContent = `(직접 열기) ${file.name}`;
@@ -225,7 +254,7 @@
       }
     });
 
-    // AR 모드 터치 배치 스크립트 (기존 동일)
+    // AR 모드 터치 배치 스크립트
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
