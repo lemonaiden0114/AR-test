@@ -28,7 +28,6 @@
       font-weight: bold;
     }
 
-    /* 상단 컨트롤 패널 스타일 */
     .controls {
       display: flex;
       flex-direction: column;
@@ -37,7 +36,7 @@
       background-color: #ffffff;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       margin-bottom: 10px;
-      gap: 12px; /* 간격 살짝 넓힘 */
+      gap: 12px;
     }
 
     .row {
@@ -51,7 +50,7 @@
       font-size: 15px;
       font-weight: bold;
       color: #333;
-      width: 80px; /* 라벨 너비 고정으로 정렬 맞춤 */
+      width: 80px;
     }
 
     .controls select {
@@ -62,10 +61,9 @@
       background-color: #fff;
       cursor: pointer;
       outline: none;
-      width: 180px; /* 드롭다운 너비 통일 */
+      width: 180px;
     }
 
-    /* 파일 직접 열기 버튼 */
     .upload-btn {
       background-color: #555;
       color: white;
@@ -81,11 +79,59 @@
       background-color: #333;
     }
 
+    /* 뷰어 영역 포지셔닝 설정 */
+    .viewer-container {
+      position: relative;
+      width: 100%;
+      height: 55vh;
+    }
+
     model-viewer {
       width: 100%;
-      height: 55vh; /* 메뉴가 하나 더 늘어서 뷰어 높이 살짝 줄임 */
+      height: 100%;
       background-color: #ffffff;
       --poster-color: transparent;
+    }
+
+    /* 90도 회전 컨트롤 패널 (뷰어 상단 오버레이) */
+    .rotate-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px;
+      border-radius: 12px;
+      backdrop-filter: blur(4px);
+    }
+
+    .rotate-row {
+      display: flex;
+      gap: 4px;
+    }
+
+    .rotate-btn {
+      background-color: #ffffff;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .rotate-btn:active {
+      background-color: #ddd;
     }
 
     .ar-button {
@@ -127,9 +173,7 @@
     AR 뷰어
   </header>
 
-  <!-- 메뉴 및 파일 업로드 영역 -->
   <div class="controls">
-    <!-- 1. 모델 선택 -->
     <div class="row">
       <label for="model-select">모델:</label>
       <select id="model-select">
@@ -137,7 +181,6 @@
       </select>
     </div>
     
-    <!-- 2. 배치 방법 선택 (신규 추가) -->
     <div class="row">
       <label for="placement-select">배치:</label>
       <select id="placement-select">
@@ -146,7 +189,6 @@
       </select>
     </div>
 
-    <!-- 3. 로컬 파일 업로드 -->
     <div class="row">
       <input type="file" id="file-input" accept=".glb, .gltf" style="display: none;">
       <button class="upload-btn" onclick="document.getElementById('file-input').click()">
@@ -155,26 +197,37 @@
     </div>
   </div>
 
-  <!-- 3D 모델 뷰어 -->
-  <model-viewer 
-    id="viewer"
-    alt="3D 모델" 
-    ar 
-    ar-modes="webxr scene-viewer" 
-    ar-placement="floor" 
-    ar-scale="fixed"
-    camera-controls 
-    auto-rotate 
-    shadow-intensity="1">
-    
-    <button slot="ar-button" class="ar-button" id="ar-button-text">
-      📷 카메라로 바닥에 놓기
-    </button>
-    
-    <div id="ar-prompt" slot="ar-prompt">
-      바닥이나 책상을 천천히 비춘 후, 원하는 곳을 터치하세요!
+  <div class="viewer-container">
+    <!-- 회전 제어 방향키 오버레이 -->
+    <div class="rotate-controls">
+      <button class="rotate-btn" id="rot-up" title="상 방향 90도 회전">▲</button>
+      <div class="rotate-row">
+        <button class="rotate-btn" id="rot-left" title="좌 방향 90도 회전">◄</button>
+        <button class="rotate-btn" id="rot-right" title="우 방향 90도 회전">►</button>
+      </div>
+      <button class="rotate-btn" id="rot-down" title="하 방향 90도 회전">▼</button>
     </div>
-  </model-viewer>
+
+    <model-viewer 
+      id="viewer"
+      alt="3D 모델" 
+      ar 
+      ar-modes="webxr scene-viewer" 
+      ar-placement="floor" 
+      ar-scale="fixed"
+      camera-controls 
+      auto-rotate 
+      shadow-intensity="1">
+      
+      <button slot="ar-button" class="ar-button" id="ar-button-text">
+        📷 카메라로 바닥에 놓기
+      </button>
+      
+      <div id="ar-prompt" slot="ar-prompt">
+        바닥이나 책상을 천천히 비춘 후, 원하는 곳을 터치하세요!
+      </div>
+    </model-viewer>
+  </div>
 
   <script>
     const modelViewer = document.querySelector('#viewer');
@@ -184,26 +237,62 @@
     const fileInput = document.querySelector('#file-input');
     const arButtonText = document.querySelector('#ar-button-text');
 
-    // [기능 1] 배치 방법(바닥/벽) 변경 감지 스크립트 추가
+    // 현재 모델의 회전 각도 상태 관리 (X, Y, Z축 deg)
+    let rotX = 0;
+    let rotY = 0;
+    let rotZ = 0;
+
+    // 회전값 업데이트 및 적용 함수
+    function applyOrientation() {
+      // 0~359도 범위로 정규화
+      rotX = (rotX % 360 + 360) % 360;
+      rotY = (rotY % 360 + 360) % 360;
+      rotZ = (rotZ % 360 + 360) % 360;
+
+      modelViewer.setAttribute('orientation', `${rotX}deg ${rotY}deg ${rotZ}deg`);
+    }
+
+    // 상/하/좌/우 90도 회전 이벤트 등록
+    document.querySelector('#rot-up').addEventListener('click', () => {
+      rotX -= 90; // 위로 회전 (X축 감소)
+      applyOrientation();
+    });
+
+    document.querySelector('#rot-down').addEventListener('click', () => {
+      rotX += 90; // 아래로 회전 (X축 증가)
+      applyOrientation();
+    });
+
+    document.querySelector('#rot-left').addEventListener('click', () => {
+      rotY -= 90; // 왼쪽으로 회전 (Y축 감소)
+      applyOrientation();
+    });
+
+    document.querySelector('#rot-right').addEventListener('click', () => {
+      rotY += 90; // 오른쪽으로 회전 (Y축 증가)
+      applyOrientation();
+    });
+
+    // 배치 방법(바닥/벽) 변경 감지
     placementSelect.addEventListener('change', (event) => {
       const mode = event.target.value;
       
       if (mode === 'wall') {
-        // 벽 모드: 수직면 인식으로 바꾸고, 모델을 90도 회전시켜 발바닥이 벽에 붙게 함
         modelViewer.setAttribute('ar-placement', 'wall');
-        modelViewer.setAttribute('orientation', '90deg 0deg 0deg');
+        rotX = 90; rotY = 0; rotZ = 0;
+        applyOrientation();
         arButtonText.textContent = '📷 카메라로 벽에 붙이기';
         arPrompt.textContent = '벽을 천천히 비춘 후, 원하는 곳을 터치하세요!';
       } else {
-        // 바닥 모드: 수평면 인식으로 바꾸고 회전 속성을 제거하여 원상복구
         modelViewer.setAttribute('ar-placement', 'floor');
-        modelViewer.removeAttribute('orientation');
+        rotX = 0; rotY = 0; rotZ = 0;
+        applyOrientation();
         arButtonText.textContent = '📷 카메라로 바닥에 놓기';
         arPrompt.textContent = '바닥이나 책상을 천천히 비춘 후, 원하는 곳을 터치하세요!';
       }
     });
 
-    // [기능 2] 깃허브에서 .glb 파일 목록을 자동으로 불러오기
+    // GitHub .glb 파일 목록 가져오기
     const githubRepo = 'lemonaiden0114/AR-test';
     
     fetch(`https://api.github.com/repos/${githubRepo}/contents/`)
@@ -232,14 +321,14 @@
         console.error('GitHub API 에러:', error);
       });
 
-    // 드롭다운에서 모델 변경 시
+    // 드롭다운 모델 변경
     modelSelect.addEventListener('change', (event) => {
       if(event.target.value) {
         modelViewer.src = event.target.value;
       }
     });
 
-    // [기능 3] 내 폰/PC에서 파일 직접 선택해서 띄우기
+    // 내 파일 열기
     fileInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file) {
@@ -254,7 +343,7 @@
       }
     });
 
-    // AR 모드 터치 배치 스크립트
+    // AR 모드 핸들링
     modelViewer.addEventListener('ar-status', (event) => {
       if (event.detail.status === 'session-started') {
         modelViewer.style.opacity = '0'; 
